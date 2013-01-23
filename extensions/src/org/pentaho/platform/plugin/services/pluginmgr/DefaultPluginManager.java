@@ -19,14 +19,7 @@ package org.pentaho.platform.plugin.services.pluginmgr;
 
 import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -53,7 +46,6 @@ import org.pentaho.platform.api.engine.PluginLifecycleException;
 import org.pentaho.platform.api.engine.PluginServiceDefinition;
 import org.pentaho.platform.api.engine.ServiceException;
 import org.pentaho.platform.api.engine.ServiceInitializationException;
-import org.pentaho.platform.api.engine.perspective.pojo.IPluginPerspective;
 import org.pentaho.platform.engine.core.solution.FileInfo;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
@@ -61,6 +53,7 @@ import org.pentaho.platform.plugin.services.messages.Messages;
 import org.pentaho.platform.plugin.services.pluginmgr.servicemgr.ServiceConfig;
 import org.pentaho.platform.util.logging.Logger;
 import org.pentaho.ui.xul.XulOverlay;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -71,10 +64,12 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
-public class DefaultPluginManager implements IPluginManager {
+public class DefaultPluginManager implements IPluginManager, ApplicationContextAware {
 
   private static final Log logger = LogFactory.getLog(DefaultPluginManager.class);
 
@@ -94,6 +89,10 @@ public class DefaultPluginManager implements IPluginManager {
       .synchronizedMap(new HashMap<String, IContentInfo>());
 
   protected List<XulOverlay> overlaysCache = Collections.synchronizedList(new ArrayList<XulOverlay>());
+
+  // Reference injected by Spring container, if this class was not created by Spring, this value will be null.
+  // We use this reference to give to plugin spring contexts as a parent so they can access the top-level beans.
+  private ApplicationContext parentApplicationContext;
 
   @Override
   public Set<String> getContentTypes() {
@@ -396,6 +395,14 @@ public class DefaultPluginManager implements IPluginManager {
     //
     BeanFactory nativeBeanFactory = getNativeBeanFactory(plugin, loader);
 
+    // If the pluginManager is created by Spring, we'll parent the plugin classloaders to that context. This allows
+    // these child classloaders to reference beans from the outer context.
+    if (this.parentApplicationContext != null && nativeBeanFactory instanceof ConfigurableApplicationContext) {
+      ((ConfigurableApplicationContext) nativeBeanFactory).setParent(this.parentApplicationContext);
+      PentahoSystem.registerChildObjectFactory(new PluginPentahoObjectFactory(((ConfigurableApplicationContext) nativeBeanFactory)));
+    }
+
+
     //
     // Now create the definable factory for accepting old style bean definitions from IPluginProvider
     //
@@ -566,6 +573,13 @@ public class DefaultPluginManager implements IPluginManager {
   @Override
   public ListableBeanFactory getBeanFactory(String pluginId) {
     return beanFactoryMap.get(pluginId);
+  }
+
+  @Override
+  public Set<ListableBeanFactory> getBeanFactories() {
+    Set<ListableBeanFactory> s = new HashSet<ListableBeanFactory>();
+    s.addAll(beanFactoryMap.values());
+    return Collections.unmodifiableSet(s);
   }
 
   private void registerContentGenerators(IPlatformPlugin plugin, ClassLoader loader)
@@ -958,5 +972,11 @@ public class DefaultPluginManager implements IPluginManager {
       }
     }
     return pluginPerspectives;
+  }
+
+  @Override
+  public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+
+    this.parentApplicationContext = applicationContext;
   }
 }

@@ -104,7 +104,7 @@ public class CredentialsStrategySessionFactory implements InitializingBean, Disp
   /**
    * Constructor with all the required fields.
    * @param repository
-   * @param workspaceName
+   * @param workspace
    * @param credentials
    */
   public CredentialsStrategySessionFactory(Repository repository, CredentialsStrategy credentialsStrategy,

@@ -30,7 +30,7 @@ import org.dom4j.Node;
 import org.jfree.data.general.Dataset;
 import org.pentaho.platform.api.engine.IActionSequenceResource;
 import org.pentaho.platform.api.engine.IPentahoUrlFactory;
-import org.pentaho.platform.engine.services.ActionSequenceJCRHelper;
+import org.pentaho.platform.engine.services.ActionSequenceRepositoryHelper;
 import org.pentaho.platform.engine.services.actionsequence.ActionSequenceResource;
 import org.pentaho.platform.uifoundation.messages.Messages;
 import org.pentaho.platform.util.xml.dom4j.XmlDom4JHelper;
@@ -42,7 +42,7 @@ public abstract class AbstractJFreeChartComponent extends AbstractChartComponent
   private static final int DEFAULT_WIDTH = 125;
   
   protected int chartType;
-  protected ActionSequenceJCRHelper jcrHelper;
+  protected ActionSequenceRepositoryHelper repositoryHelper;
   protected Dataset dataDefinition;
 
   protected AbstractJFreeChartComponent(final int chartType, final String definitionPath, final int width,
@@ -69,7 +69,7 @@ public abstract class AbstractJFreeChartComponent extends AbstractChartComponent
 
   protected AbstractJFreeChartComponent(final IPentahoUrlFactory urlFactory, final List messages) {
     super(urlFactory, messages);
-    jcrHelper = new ActionSequenceJCRHelper(getSession());
+    repositoryHelper = new ActionSequenceRepositoryHelper(getSession());
     AbstractChartComponent.logger = LogFactory.getLog(this.getClass());
   }
 
@@ -119,7 +119,7 @@ public abstract class AbstractJFreeChartComponent extends AbstractChartComponent
         "", IActionSequenceResource.SOLUTION_FILE_RESOURCE, "text/xml", //$NON-NLS-1$ //$NON-NLS-2$
         chartDefinition);
     try {
-      Document dataActionDocument = jcrHelper.getSolutionDocument(chartDefinition, 1);
+      Document dataActionDocument = repositoryHelper.getSolutionDocument(chartDefinition, 1);
       if (dataActionDocument == null) {
         return false;
       }

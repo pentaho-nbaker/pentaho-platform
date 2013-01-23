@@ -53,7 +53,7 @@ import org.pentaho.platform.engine.core.solution.ActionInfo;
 import org.pentaho.platform.engine.core.system.PentahoRequestContextHolder;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
-import org.pentaho.platform.engine.services.ActionSequenceJCRHelper;
+import org.pentaho.platform.engine.services.ActionSequenceRepositoryHelper;
 import org.pentaho.platform.engine.services.runtime.ParameterManager;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.platform.util.web.SimpleUrlFactory;
@@ -261,7 +261,7 @@ public class ViewAction extends ServletBase {
       IPentahoSession userSession = getPentahoSession(request);
       if (!doBackgroundExecution(request, response, userSession)) {
         OutputStream outputStream = getOutputStream(response, doMessages(request));
-        ActionSequenceJCRHelper actionHelper = new ActionSequenceJCRHelper(userSession);
+        ActionSequenceRepositoryHelper actionHelper = new ActionSequenceRepositoryHelper(userSession);
         String actionPath = request.getParameter("path"); //$NON-NLS-1$
         IActionSequence actionSequence = actionHelper.getActionSequence(actionPath, PentahoSystem.loggingLevel, ISolutionRepository.ACTION_EXECUTE);
         String fileName = null;

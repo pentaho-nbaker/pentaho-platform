@@ -57,7 +57,7 @@ import org.pentaho.platform.api.repository2.unified.RepositoryFile;
 import org.pentaho.platform.engine.core.output.SimpleOutputHandler;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
-import org.pentaho.platform.engine.services.ActionSequenceJCRHelper;
+import org.pentaho.platform.engine.services.ActionSequenceRepositoryHelper;
 import org.pentaho.platform.engine.services.SoapHelper;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.platform.util.web.SimpleUrlFactory;
@@ -74,7 +74,7 @@ public class XactionUtil {
   @SuppressWarnings("rawtypes")
   public static void createOutputFileName(RepositoryFile file, IOutputHandler outputHandler) {
     IPentahoSession userSession = PentahoSessionHolder.getSession();
-    ActionSequenceJCRHelper actionHelper = new ActionSequenceJCRHelper(userSession);
+    ActionSequenceRepositoryHelper actionHelper = new ActionSequenceRepositoryHelper(userSession);
     IActionSequence actionSequence = actionHelper.getActionSequence(file.getPath(), PentahoSystem.loggingLevel, 1);
 
     String fileName = "content"; //$NON-NLS-1$
@@ -337,7 +337,7 @@ public class XactionUtil {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public static String doParameter(final RepositoryFile file, IParameterProvider parameterProvider, 
       final IPentahoSession userSession) throws IOException {
-    ActionSequenceJCRHelper helper = new ActionSequenceJCRHelper();
+    ActionSequenceRepositoryHelper helper = new ActionSequenceRepositoryHelper();
     final IActionSequence actionSequence = helper.getActionSequence(file.getPath(), PentahoSystem.loggingLevel, 1);
     final Document document = DocumentHelper.createDocument();
     try {

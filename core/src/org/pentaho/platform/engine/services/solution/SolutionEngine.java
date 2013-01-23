@@ -49,7 +49,7 @@ import org.pentaho.platform.engine.core.audit.AuditHelper;
 import org.pentaho.platform.engine.core.audit.MessageTypes;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.engine.security.SecurityParameterProvider;
-import org.pentaho.platform.engine.services.ActionSequenceJCRHelper;
+import org.pentaho.platform.engine.services.ActionSequenceRepositoryHelper;
 import org.pentaho.platform.engine.services.PentahoMessenger;
 import org.pentaho.platform.engine.services.actionsequence.SequenceDefinition;
 import org.pentaho.platform.engine.services.messages.Messages;
@@ -427,7 +427,7 @@ public class SolutionEngine extends PentahoMessenger implements ISolutionEngine,
   }
 
   private IActionSequence createActionSequence(final String actionPath) {
-    return new ActionSequenceJCRHelper(session).getActionSequence(actionPath, loggingLevel, ISolutionRepository.ACTION_EXECUTE);
+    return new ActionSequenceRepositoryHelper(session).getActionSequence(actionPath, loggingLevel, ISolutionRepository.ACTION_EXECUTE);
   }
 
   private IActionSequence createActionSequenceFromXml(final String actionDef) {
