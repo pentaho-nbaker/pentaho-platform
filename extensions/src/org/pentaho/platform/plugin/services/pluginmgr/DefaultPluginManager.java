@@ -19,14 +19,7 @@ package org.pentaho.platform.plugin.services.pluginmgr;
 
 import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -53,7 +46,6 @@ import org.pentaho.platform.api.engine.PluginLifecycleException;
 import org.pentaho.platform.api.engine.PluginServiceDefinition;
 import org.pentaho.platform.api.engine.ServiceException;
 import org.pentaho.platform.api.engine.ServiceInitializationException;
-import org.pentaho.platform.api.engine.perspective.pojo.IPluginPerspective;
 import org.pentaho.platform.engine.core.solution.FileInfo;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
@@ -61,6 +53,7 @@ import org.pentaho.platform.plugin.services.messages.Messages;
 import org.pentaho.platform.plugin.services.pluginmgr.servicemgr.ServiceConfig;
 import org.pentaho.platform.util.logging.Logger;
 import org.pentaho.ui.xul.XulOverlay;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -69,12 +62,15 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
-public class DefaultPluginManager implements IPluginManager {
+public class DefaultPluginManager implements IPluginManager, ApplicationContextAware {
 
   private static final Log logger = LogFactory.getLog(DefaultPluginManager.class);
 
@@ -94,6 +90,10 @@ public class DefaultPluginManager implements IPluginManager {
       .synchronizedMap(new HashMap<String, IContentInfo>());
 
   protected List<XulOverlay> overlaysCache = Collections.synchronizedList(new ArrayList<XulOverlay>());
+
+  // Reference injected by Spring container, if this class was not created by Spring, this value will be null.
+  // We use this reference to give to plugin spring contexts as a parent so they can access the top-level beans.
+  private ApplicationContext parentApplicationContext;
 
   @Override
   public Set<String> getContentTypes() {
@@ -425,10 +425,21 @@ public class DefaultPluginManager implements IPluginManager {
       beanFactory.registerBeanDefinition(def.getBeanId(), beanDef);
     }
 
-    if (nativeBeanFactory instanceof ConfigurableApplicationContext) {
-      //yeah, we're eagerly init'ing for now. If this becomes a problem we can lazily do it from getApplicationContext
-      ((ConfigurableApplicationContext) nativeBeanFactory).refresh();
+    // If the pluginManager is created by Spring, we'll parent the plugin classloaders to that context. This allows
+    // these child classloaders to reference beans from the outer context.
+    if (this.parentApplicationContext != null && parentApplicationContext instanceof BeanDefinitionRegistry
+        && nativeBeanFactory instanceof ConfigurableApplicationContext) {
+
+      ConfigurableApplicationContext configurableAppCtx = (ConfigurableApplicationContext) nativeBeanFactory;
+      String[] names = configurableAppCtx.getBeanDefinitionNames();
+      for(String name : names){
+        BeanDefinition def = configurableAppCtx.getBeanFactory().getBeanDefinition(name);
+        def.setAttribute("plugin-id", plugin.getId());
+
+        ((BeanDefinitionRegistry) this.parentApplicationContext).registerBeanDefinition(name, def);
+      }
     }
+
   }
 
   /**
@@ -497,7 +508,8 @@ public class DefaultPluginManager implements IPluginManager {
       //defining plugin beans the old way through the plugin provider ifc supports only prototype scope
       BeanDefinition beanDef = BeanDefinitionBuilder.rootBeanDefinition(serviceClassName).setScope(
           BeanDefinition.SCOPE_PROTOTYPE).getBeanDefinition();
-      beanFactoryMap.get(plugin.getId()).registerBeanDefinition(serviceClassKey, beanDef);
+      beanDef.setAttribute("pluginID", plugin.getId());
+      this.parentContextRegistry.registerBeanDefinition(serviceClassKey, beanDef);
 
       if (!this.isBeanRegistered(serviceClassKey)) {
         throw new PlatformPluginRegistrationException(Messages.getInstance().getErrorString(
@@ -575,11 +587,14 @@ public class DefaultPluginManager implements IPluginManager {
       //define the bean in the factory
       BeanDefinition beanDef = BeanDefinitionBuilder.rootBeanDefinition(cgInfo.getClassname()).setScope(
           BeanDefinition.SCOPE_PROTOTYPE).getBeanDefinition();
-      DefaultListableBeanFactory factory = beanFactoryMap.get(plugin.getId());
+      beanDef.setAttribute("pluginID", plugin.getId());
+
       //register bean with alias of content generator id (old way)
-      factory.registerBeanDefinition(cgInfo.getId(), beanDef);
-      //register bean with alias of type (with default perspective) as well (new way)
-      factory.registerAlias(cgInfo.getId(), cgInfo.getType());
+      if(this.parentApplicationContext != null){
+        ((BeanDefinitionRegistry) this.parentApplicationContext).registerBeanDefinition(cgInfo.getId(), beanDef);
+        //register bean with alias of type (with default perspective) as well (new way)
+        ((BeanDefinitionRegistry) this.parentApplicationContext).registerAlias(cgInfo.getId(), cgInfo.getType());
+      }
 
       PluginMessageLogger.add(Messages.getInstance().getString(
           "PluginManager.USER_CONTENT_GENERATOR_REGISTERED", cgInfo.getId(), plugin.getId())); //$NON-NLS-1$
@@ -592,15 +607,7 @@ public class DefaultPluginManager implements IPluginManager {
     }
 
     Object bean = null;
-    for (DefaultListableBeanFactory beanFactory : beanFactoryMap.values()) {
-      if (beanFactory.containsBean(beanId)) {
-          if (requiredType == null) {
-            bean = beanFactory.getBean(beanId);
-          } else {
-            bean = beanFactory.getBean(beanId, requiredType);
-          }
-      }
-    }
+
     if(bean == null) {
       throw new NoSuchBeanDefinitionException("Could not find bean with id "+beanId);
     }
@@ -613,16 +620,17 @@ public class DefaultPluginManager implements IPluginManager {
       throw new IllegalArgumentException("beanId cannot be null"); //$NON-NLS-1$
     }
 
-    Object bean = null;
-    for (DefaultListableBeanFactory beanFactory : beanFactoryMap.values()) {
-      if (beanFactory.containsBean(beanId)) {
-        try {
-          bean = beanFactory.getBean(beanId);
-        } catch (Throwable ex) { // Catching throwable on purpose
-          throw new PluginBeanException(ex);
-        }
-      }
-    }
+//    Object bean = null;
+//    for (DefaultListableBeanFactory beanFactory : beanFactoryMap.values()) {
+//      if (beanFactory.containsBean(beanId)) {
+//        try {
+//          bean = beanFactory.getBean(beanId);
+//        } catch (Throwable ex) { // Catching throwable on purpose
+//          throw new PluginBeanException(ex);
+//        }
+//      }
+//    }
+    Object bean = parentApplicationContext.getBean(beanId);
     if (bean == null) {
       throw new PluginBeanException(Messages.getInstance().getString("PluginManager.WARN_CLASS_NOT_REGISTERED", beanId)); //$NON-NLS-1$
     }
@@ -696,9 +704,14 @@ public class DefaultPluginManager implements IPluginManager {
     }
 
     boolean registered = false;
-    for (DefaultListableBeanFactory beanFactory : beanFactoryMap.values()) {
-      if (beanFactory.containsBean(beanId)) {
-        registered = true;
+
+    if(this.parentApplicationContext != null){
+
+    } else {
+      for (DefaultListableBeanFactory beanFactory : beanFactoryMap.values()) {
+        if (beanFactory.containsBean(beanId)) {
+          registered = true;
+        }
       }
     }
 
@@ -958,5 +971,13 @@ public class DefaultPluginManager implements IPluginManager {
       }
     }
     return pluginPerspectives;
+  }
+
+  @Override
+  public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+    if(applicationContext instanceof BeanDefinitionRegistry == false){
+      throw new IllegalArgumentException("ApplicationContext class must implement BeanDefinitionRegistry");
+    }
+    this.parentApplicationContext = applicationContext;
   }
 }

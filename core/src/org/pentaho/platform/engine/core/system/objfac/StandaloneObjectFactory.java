@@ -23,12 +23,10 @@ package org.pentaho.platform.engine.core.system.objfac;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.pentaho.platform.api.engine.IPentahoDefinableObjectFactory;
-import org.pentaho.platform.api.engine.IPentahoInitializer;
-import org.pentaho.platform.api.engine.IPentahoSession;
-import org.pentaho.platform.api.engine.ObjectFactoryException;
+import org.pentaho.platform.api.engine.*;
 import org.pentaho.platform.engine.core.messages.Messages;
 
 public class StandaloneObjectFactory implements IPentahoDefinableObjectFactory {
@@ -207,5 +205,70 @@ public class StandaloneObjectFactory implements IPentahoDefinableObjectFactory {
 
   public void defineInstance(String key, Object instance) {
     instanceMap.put(key, instance);
+  }
+
+
+  @Override
+  public <T> List<T> getAll(Class<T> interfaceClass, IPentahoSession curSession) throws ObjectFactoryException {
+    return Collections.singletonList(get(interfaceClass, curSession));
+  }
+
+  @Override
+  public <T> IPentahoObjectReference<T> getObjectReference(Class<T> clazz, IPentahoSession curSession) {
+    try {
+      T obj = get(clazz, curSession);
+      return new SimplePentahoObjectReference(obj);
+    } catch (ObjectFactoryException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public <T> T get(Class<T> interfaceClass, IPentahoSession session, Map<String, String> properties) throws ObjectFactoryException {
+    return get(interfaceClass, session);
+  }
+
+  @Override
+  public boolean objectDefined(Class<?> clazz) {
+    return instanceMap.containsKey(clazz.getSimpleName());  //To change body of implemented methods use File | Settings | File Templates.
+  }
+
+  @Override
+  public <T> IPentahoObjectReference<T> getObjectReference(Class<T> interfaceClass, IPentahoSession curSession, Map<String, String> properties){
+    try {
+      T obj = get(interfaceClass, curSession);
+      return new SimplePentahoObjectReference(obj);
+    } catch (ObjectFactoryException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static class SimplePentahoObjectReference<T> implements IPentahoObjectReference{
+
+    private T object;
+
+    public SimplePentahoObjectReference(T object){
+      this.object = object;
+    }
+
+    @Override
+    public Object getObject() {
+      return this.object;
+    }
+
+    @Override
+    public Map<String, Object> getProperties() {
+      return Collections.emptyMap();
+    }
+  }
+
+  @Override
+  public <T> IPentahoObjectReference<T> getObjectReferences(Class<T> interfaceClass, IPentahoSession curSession) {
+    return null;  //To change body of implemented methods use File | Settings | File Templates.
+  }
+
+  @Override
+  public <T> IPentahoObjectReference<T> getObjectReferences(Class<T> interfaceClass, IPentahoSession curSession, Map<String, String> properties) {
+    return null;  //To change body of implemented methods use File | Settings | File Templates.
   }
 }

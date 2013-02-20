@@ -71,6 +71,7 @@ import org.pentaho.platform.repository2.unified.fs.FileSystemBackedUnifiedReposi
 import org.pentaho.test.platform.engine.core.EchoServiceBean;
 import org.pentaho.test.platform.engine.core.MicroPlatform;
 import org.pentaho.ui.xul.XulOverlay;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -247,7 +248,7 @@ public class DefaultPluginManagerTest {
   }
 
   @Test
-  public void test8_getBeanFromPluginClassloader() throws PluginBeanException, PlatformInitializationException {
+  public void test8_getBeanFromPluginClassloader() throws PluginBeanException, PlatformInitializationException, BeansException {
     microPlatform.define(IPluginProvider.class, Tst8PluginProvider.class).start();
 
     //reload should register the beans
@@ -311,7 +312,7 @@ public class DefaultPluginManagerTest {
    * added to the bean factory.
    */
   @Test
-  public void test16_getBeanFromPluginClassloader_usingBeanFactory() throws PluginBeanException, PlatformInitializationException {
+  public void test16_getBeanFromPluginClassloader_usingBeanFactory() throws PluginBeanException, PlatformInitializationException, BeansException {
     microPlatform.define(IPluginProvider.class, Tst16PluginProvider.class).start();
 
     //reload should register the beans

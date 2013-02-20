@@ -220,4 +220,5 @@ public class MockPluginManager implements IPluginManager {
     // TODO Auto-generated method stub
     return null;
   }
+
 }

@@ -24,7 +24,13 @@ import javax.servlet.ServletContext;
 
 import org.pentaho.platform.engine.core.system.objfac.AbstractSpringPentahoObjectFactory;
 import org.pentaho.platform.web.http.messages.Messages;
+import org.pentaho.platform.web.servlet.WebContextServlet;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.xml.XmlBeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 /**
  * This factory implementation can be used in a web environment in which a Spring
@@ -60,6 +66,12 @@ public class WebSpringPentahoObjectFactory extends AbstractSpringPentahoObjectFa
     }
 
     ServletContext servletContext = (ServletContext) context;
-    beanFactory = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext);
+    XmlWebApplicationContext ctx = (XmlWebApplicationContext) WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext);
+
+    GenericApplicationContext defBeanFactory = new GenericApplicationContext();
+    defBeanFactory.getBeanFactory().setParentBeanFactory(ctx);
+
+    WebApplicationContextUtils.registerWebApplicationScopes(defBeanFactory.getBeanFactory());
+    beanFactory = defBeanFactory;
   }
 }

@@ -39,29 +39,12 @@ import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 import org.dom4j.Node;
-import org.pentaho.platform.api.engine.IAclVoter;
-import org.pentaho.platform.api.engine.IActionParameter;
-import org.pentaho.platform.api.engine.IApplicationContext;
-import org.pentaho.platform.api.engine.ICacheManager;
-import org.pentaho.platform.api.engine.IContentOutputHandler;
-import org.pentaho.platform.api.engine.ILogger;
-import org.pentaho.platform.api.engine.ILogoutListener;
-import org.pentaho.platform.api.engine.IParameterProvider;
-import org.pentaho.platform.api.engine.IPentahoObjectFactory;
-import org.pentaho.platform.api.engine.IPentahoPublisher;
-import org.pentaho.platform.api.engine.IPentahoSession;
-import org.pentaho.platform.api.engine.IPentahoSystemListener;
-import org.pentaho.platform.api.engine.IPentahoUrlFactory;
-import org.pentaho.platform.api.engine.IRuntimeContext;
-import org.pentaho.platform.api.engine.ISessionStartupAction;
-import org.pentaho.platform.api.engine.ISolutionEngine;
-import org.pentaho.platform.api.engine.ISystemSettings;
-import org.pentaho.platform.api.engine.ObjectFactoryException;
-import org.pentaho.platform.api.engine.PentahoSystemException;
+import org.pentaho.platform.api.engine.*;
 import org.pentaho.platform.engine.core.messages.Messages;
 import org.pentaho.platform.engine.core.output.SimpleOutputHandler;
 import org.pentaho.platform.engine.core.solution.PentahoSessionParameterProvider;
 import org.pentaho.platform.engine.core.solution.SimpleParameterProvider;
+import org.pentaho.platform.engine.core.system.objfac.AggregateObjectFactory;
 import org.pentaho.platform.util.logging.Logger;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.platform.util.web.SimpleUrlFactory;
@@ -457,17 +440,17 @@ public class PentahoSystem {
     return PentahoSystem.initializedStatus;
   }
 
-  private static List getAdditionalInitializationFailureMessages(final int failureBit) {
-    List l = (List) PentahoSystem.initializationFailureDetailsMap.get(new Integer(failureBit));
+  private static List<String> getAdditionalInitializationFailureMessages(final int failureBit) {
+    List<String> l = (List) PentahoSystem.initializationFailureDetailsMap.get(new Integer(failureBit));
     return l;
   }
 
-  public static List getInitializationFailureMessages() {
-    List rtn = new ArrayList();
+  public static List<String> getInitializationFailureMessages() {
+    List<String> rtn = new ArrayList<String>();
     if (PentahoSystem.hasFailed(PentahoSystem.SYSTEM_SETTINGS_FAILED)) {
       rtn.add(Messages.getInstance().getString(
           "PentahoSystem.USER_INITIALIZATION_SYSTEM_SETTINGS_FAILED", PathBasedSystemSettings.SYSTEM_CFG_PATH_KEY));//$NON-NLS-1$
-      List l = PentahoSystem.getAdditionalInitializationFailureMessages(PentahoSystem.SYSTEM_SETTINGS_FAILED);
+      List<String> l = PentahoSystem.getAdditionalInitializationFailureMessages(PentahoSystem.SYSTEM_SETTINGS_FAILED);
       if (l != null) {
         rtn.addAll(l);
       }
@@ -481,7 +464,7 @@ public class PentahoSystem {
     }
     if (PentahoSystem.hasFailed(PentahoSystem.SYSTEM_OBJECTS_FAILED)) {
       rtn.add(Messages.getInstance().getString("PentahoSystem.USER_INITIALIZATION_SYSTEM_OBJECTS_FAILED"));//$NON-NLS-1$
-      List l = PentahoSystem.getAdditionalInitializationFailureMessages(PentahoSystem.SYSTEM_OBJECTS_FAILED);
+      List<String> l = PentahoSystem.getAdditionalInitializationFailureMessages(PentahoSystem.SYSTEM_OBJECTS_FAILED);
       if (l != null) {
         rtn.addAll(l);
       }
@@ -564,17 +547,79 @@ public class PentahoSystem {
    * access session-bound objects.
    */
   public static <T> T get(Class<T> interfaceClass) {
-    return get(interfaceClass, interfaceClass.getSimpleName(), PentahoSessionHolder.getSession());
+    return get(interfaceClass, null, PentahoSessionHolder.getSession());
   }
-  
+
+
   /**
    * A convenience method for retrieving Pentaho system objects from the object factory.
-   * Looks up an object by using the name of the <code>interfaceClass</code> as the object key in 
+   * Looks up an object by using the name of the <code>interfaceClass</code> as the object key in
+   * {@link PentahoSystem#get(Class, IPentahoSession, Map)}.
+   * NOTE: session will be derived for you by using PentahoSessionHolder, so a session must already
+   * have been bound to the thread local in PentahoSessionHolder in order for you to be able to
+   * access session-bound objects.
+   */
+  public static <T> T get(Class<T> interfaceClass, final IPentahoSession session, final Map<String, String> properties) {
+    try {
+      if(!pentahoObjectFactory.objectDefined(interfaceClass)) {
+        //this may not be a failure case, but we should log a warning in case the object is truly required
+        Logger.warn( PentahoSystem.class.getName(), Messages.getInstance().getErrorString("PentahoSystem.WARN_OBJECT_NOT_CONFIGURED", interfaceClass.getSimpleName())); //$NON-NLS-1$
+        return null;
+      }
+      IPentahoSession curSession = (session == null)?PentahoSessionHolder.getSession():session;
+      return pentahoObjectFactory.get( interfaceClass, curSession, properties);
+    } catch (ObjectFactoryException e) {
+      //something went wrong, we need to log this
+      Logger.error( PentahoSystem.class.getName(), Messages.getInstance().getErrorString("PentahoSystem.ERROR_0026_COULD_NOT_RETRIEVE_CONFIGURED_OBJECT", interfaceClass.getSimpleName()), e); //$NON-NLS-1$
+      //for backwards compatibility: callers expect a null return even in an error case
+      return null;
+    }
+  }
+
+  /**
+   * A convenience method for retrieving Pentaho system objects from the object factory.
+   * Looks up an object by using the name of the <code>interfaceClass</code> as the object key in
+   * {@link PentahoSystem#getAll(Class, IPentahoSession)}.
+   * NOTE: session will be derived for you by using PentahoSessionHolder, so a session must already
+   * have been bound to the thread local in PentahoSessionHolder in order for you to be able to
+   * access session-bound objects.
+   */
+  public static <T> List<T> getAll(Class<T> interfaceClass) {
+    return getAll(interfaceClass, PentahoSessionHolder.getSession());
+  }
+
+
+  /**
+   * Retrieves objects from the object factory registered to the PentahoSystem implementing
+   * or extending the given Class literal
+   */
+  private static <T> List<T> getAll(Class<T> interfaceClass, IPentahoSession session) {
+    try {
+      if(!pentahoObjectFactory.objectDefined(interfaceClass)) {
+        //this may not be a failure case, but we should log a warning in case the object is truly required
+        Logger.warn( PentahoSystem.class.getName(), Messages.getInstance().getErrorString("PentahoSystem.WARN_OBJECT_NOT_CONFIGURED", interfaceClass.getSimpleName())); //$NON-NLS-1$
+        return null;
+      }
+      IPentahoSession curSession = (session == null)?PentahoSessionHolder.getSession():session;
+      return pentahoObjectFactory.getAll( interfaceClass, curSession );
+    } catch (ObjectFactoryException e) {
+      //something went wrong, we need to log this
+      Logger.error( PentahoSystem.class.getName(), Messages.getInstance().getErrorString("PentahoSystem.ERROR_0026_COULD_NOT_RETRIEVE_CONFIGURED_OBJECT", interfaceClass.getSimpleName()), e); //$NON-NLS-1$
+      //for backwards compatibility: callers expect a null return even in an error case
+      return null;
+    }
+  }
+
+
+  /**
+   * A convenience method for retrieving Pentaho system objects from the object factory implementing
+   * or extending the given Class literal
+   *
    * {@link PentahoSystem#get(Class, String, IPentahoSession)}.
    */
   public static <T> T get(Class<T> interfaceClass, final IPentahoSession session) {
     IPentahoSession curSession = (session == null)?PentahoSessionHolder.getSession():session;
-    return get(interfaceClass, interfaceClass.getSimpleName(), curSession);
+    return get(interfaceClass, null, curSession);
   }
   
   /**
@@ -592,7 +637,7 @@ public class PentahoSystem {
    */
   public static <T> T get(Class<T> interfaceClass, String key, final IPentahoSession session) {
     try {
-      if(!pentahoObjectFactory.objectDefined(key)) {
+      if(!pentahoObjectFactory.objectDefined(interfaceClass)) {
         //this may not be a failure case, but we should log a warning in case the object is truly required
         Logger.warn( PentahoSystem.class.getName(), Messages.getInstance().getErrorString("PentahoSystem.WARN_OBJECT_NOT_CONFIGURED", key)); //$NON-NLS-1$
         return null;
@@ -606,6 +651,44 @@ public class PentahoSystem {
       return null;
     }
   }
+
+
+
+  /**
+   * Returns an IPentahoObjectReference for the requested Object containing registered Object Properties.
+   *
+   * @param interfaceClass Interface or Class literal for which implementations of will be found
+   * @param curSession current session to be used for session-based implementations
+   * @return IPentahoObjectReference for the matching Object or null if no Object is found
+   */
+  public static <T> IPentahoObjectReference<T> getObjectReference(Class<T> interfaceClass, IPentahoSession curSession){
+    return getObjectReference(interfaceClass, curSession, null);
+  }
+
+
+  /**
+   * Returns an IPentahoObjectReference for the requested Object containing registered Object Properties.
+   *
+   * @param interfaceClass Interface or Class literal for which implementations of will be found
+   * @param curSession current session to be used for session-based implementations
+   * @param properties Map of properties to filter matches in the ObjectFactory by
+   *
+   * @return IPentahoObjectReference for the matching Object or null if no Object is found
+   */
+  public static <T> IPentahoObjectReference<T> getObjectReference(Class<T> interfaceClass, IPentahoSession curSession, Map<String, String> properties){
+
+    if(!pentahoObjectFactory.objectDefined(interfaceClass)) {
+      //this may not be a failure case, but we should log a warning in case the object is truly required
+      Logger.warn( PentahoSystem.class.getName(), Messages.getInstance().getErrorString("PentahoSystem.WARN_OBJECT_NOT_CONFIGURED", interfaceClass.getSimpleName())); //$NON-NLS-1$
+      return null;
+    }
+    curSession = (curSession == null)?PentahoSessionHolder.getSession():curSession;
+    return pentahoObjectFactory.getObjectReference( interfaceClass, curSession, properties );
+
+
+
+  }
+
 
   public static String getSystemName() {
     return Messages.getInstance().getString("PentahoSystem.USER_SYSTEM_TITLE"); //$NON-NLS-1$;

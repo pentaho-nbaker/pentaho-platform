@@ -20,6 +20,9 @@
  */
 package org.pentaho.platform.api.engine;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * The way the BI platform creates and manages system objects.
  * <p>
@@ -70,8 +73,28 @@ public interface IPentahoObjectFactory {
    *        does not originate in a session context.
    * @return the implementation object typed to interfaceClass
    * @throws ObjectFactoryException if the object cannot be retrieved
+   *
+   * @Deprecated use {@link IPentahoObjectFactory#get(Class, IPentahoSession)} instead}
    */
   public <T> T get(Class<T> interfaceClass, String key, final IPentahoSession session) throws ObjectFactoryException;
+
+  /**
+   * Retrieves an instance of a Pentaho BI Server API interface using the simple interface name
+   * (interfaceClass name without the package) as the object key.  If an appropriate
+   * implementation does not exist the factory implementation should create it.
+   *
+   * @param interfaceClass  the type of object to retrieve (retrieved object will be
+   *        returned as this type)
+   * @param session  the Pentaho session object.  Can be used to associate an object
+   *        instance to a Pentaho session.  Value will be null if request to getObject
+   *        does not originate in a session context.
+   * @param properties Map of properties to filter matches in the ObjectFactory by
+   *
+   * @return the implementation object typed to interfaceClass
+   * @throws ObjectFactoryException if the object cannot be retrieved
+   */
+  public <T> T get(Class<T> interfaceClass, final IPentahoSession session, Map<String, String> properties) throws ObjectFactoryException;
+
 
   /**
    * Checks if the implementation for the given interface is defined.
@@ -79,6 +102,13 @@ public interface IPentahoObjectFactory {
    * @return true if the object is defined
    */
   public boolean objectDefined(String key);
+
+  /**
+   * Checks if the implementation for the given interface is defined.
+   * @param clazz  Interface or class literal to search for
+   * @return true if the object is defined
+   */
+  public boolean objectDefined(Class<?> clazz);
   
   /**
    * Provides the concrete Class defined for the given object key.
@@ -99,4 +129,61 @@ public interface IPentahoObjectFactory {
    *        used by the factory and the environment in which the application is running.
    */
   public void init(String configFile, Object context);
+
+  /**
+   *
+   * Returns all objects implementing the provided interface or extending the provided class if the Class
+   * is not an Interface.
+   *
+   * The returned list will be ordered by the optional "priority" property
+   *
+   *
+   * @param interfaceClass Interface or Class literal for which implementations of will be found
+   * @param curSession current session to be used for session-based implementations
+   * @return List of registered implementations
+   */
+  <T> List<T> getAll(Class<T> interfaceClass, IPentahoSession curSession) throws ObjectFactoryException;
+
+  /**
+   * Returns an IPentahoObjectReference for the requested Object containing registered Object Properties.
+   *
+   * @param interfaceClass Interface or Class literal for which implementations of will be found
+   * @param curSession current session to be used for session-based implementations
+   * @return IPentahoObjectReference for the matching Object or null if no Object is found
+   */
+  <T> IPentahoObjectReference<T> getObjectReference(Class<T> interfaceClass, IPentahoSession curSession);
+
+  /**
+   * Returns an IPentahoObjectReference for the requested Object containing registered Object Properties.
+   *
+   * @param interfaceClass Interface or Class literal for which implementations of will be found
+   * @param curSession current session to be used for session-based implementations
+   * @param properties Map of properties to filter matches in the ObjectFactory by
+   *
+   * @return IPentahoObjectReference for the matching Object or null if no Object is found
+   */
+  <T> IPentahoObjectReference<T> getObjectReference(Class<T> interfaceClass, IPentahoSession curSession, Map<String, String> properties);
+
+
+  /**
+   * Returns an IPentahoObjectReference for the requested Object containing registered Object Properties.
+   *
+   * @param interfaceClass Interface or Class literal for which implementations of will be found
+   * @param curSession current session to be used for session-based implementations
+   * @return IPentahoObjectReference for the matching Object or null if no Object is found
+   */
+  <T> IPentahoObjectReference<T> getObjectReferences(Class<T> interfaceClass, IPentahoSession curSession);
+
+
+  /**
+   * Returns an IPentahoObjectReference for the requested Object containing registered Object Properties.
+   *
+   * @param interfaceClass Interface or Class literal for which implementations of will be found
+   * @param curSession current session to be used for session-based implementations
+   * @param properties Map of properties to filter matches in the ObjectFactory by
+   *
+   * @return IPentahoObjectReference for the matching Object or null if no Object is found
+   */
+  <T> IPentahoObjectReference<T> getObjectReferences(Class<T> interfaceClass, IPentahoSession curSession, Map<String, String> properties);
+
 }
