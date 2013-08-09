@@ -347,14 +347,14 @@ public class RepositoryFile implements Comparable<RepositoryFile>, Serializable 
     }
 
     public Builder(final RepositoryFile other) {
-      this(other.name);
-      this.id(other.id).path(other.path).createdDate(other.createdDate).creatorId(other.creatorId)
-          .fileSize(other.fileSize).folder(other.folder).lastModificationDate(other.lastModifiedDate)
-          .versioned(other.versioned).hidden(other.hidden).versionId(other.versionId).locked(other.locked)
-          .lockDate(other.lockDate).lockOwner(other.lockOwner).lockMessage(other.lockMessage).title(other.title)
-          .description(other.description)
-          .locale(other.locale).originalParentFolderPath(other.originalParentFolderPath).deletedDate(other.deletedDate)
-          .localePropertiesMap(other.localePropertiesMap);
+      this(other.getName());
+      this.id(other.getId()).path(other.getPath()).createdDate(other.getCreatedDate()).creatorId(other.getCreatorId())
+          .fileSize(other.getFileSize()).folder(other.isFolder()).lastModificationDate(other.getLastModifiedDate())
+          .versioned(other.isVersioned()).hidden(other.isHidden()).versionId(other.getVersionId()).locked(other.isLocked())
+          .lockDate(other.getLockDate()).lockOwner(other.getLockOwner()).lockMessage(other.getLockMessage()).title(other.getTitle())
+          .description(other.getDescription())
+          .locale(other.getLocale()).originalParentFolderPath(other.getOriginalParentFolderPath()).deletedDate(other.getDeletedDate())
+          .localePropertiesMap(other.getLocalePropertiesMap());
     }
 
     public RepositoryFile build() {
@@ -562,23 +562,23 @@ public class RepositoryFile implements Comparable<RepositoryFile>, Serializable 
       return true;
     if (obj == null)
       return false;
-    if (getClass() != obj.getClass())
+    if (! getClass().isAssignableFrom(obj.getClass()) && !obj.getClass().isAssignableFrom(getClass()))
       return false;
     RepositoryFile other = (RepositoryFile) obj;
-    if (id == null) {
-      if (other.id != null)
+    if (getId() == null) {
+      if (other.getId() != null)
         return false;
-    } else if (!id.equals(other.id))
+    } else if (!getId().equals(other.getId()))
       return false;
-    if (locale == null) {
-      if (other.locale != null)
+    if (getLocale() == null) {
+      if (other.getLocale() != null)
         return false;
-    } else if (!locale.equals(other.locale))
+    } else if (!getLocale().equals(other.getLocale()))
       return false;
-    if (versionId == null) {
-      if (other.versionId != null)
+    if (getVersionId() == null) {
+      if (other.getVersionId() != null)
         return false;
-    } else if (!versionId.equals(other.versionId))
+    } else if (!getVersionId().equals(other.getVersionId()))
       return false;
     return true;
   }
