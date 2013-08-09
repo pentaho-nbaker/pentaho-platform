@@ -18,10 +18,7 @@ import org.pentaho.platform.api.repository2.unified.RepositoryFile;
 import org.pentaho.platform.api.repository2.unified.RepositoryFileSid;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Converts {@code RepositoryFile} into JAXB-safe object and vice-versa.
@@ -32,56 +29,101 @@ public class RepositoryFileAdapter extends XmlAdapter<RepositoryFileDto, Reposit
 
   @Override
   public RepositoryFileDto marshal(final RepositoryFile v) {
-    return toFileDto(v);
+    return toFileDto(v, null);
   }
 
-  public static RepositoryFileDto toFileDto(final RepositoryFile v) {
+  private static boolean include(String key, Set<String> set){
+    return set == null || set.contains(key);
+  }
+  public static RepositoryFileDto toFileDto(final RepositoryFile v, Set<String> includeMemberSet) {
     if (v == null) {
       return null;
     }
     RepositoryFileDto f = new RepositoryFileDto();
-    f.name = v.getName();
-    f.path = v.getPath();
-    f.hidden = v.isHidden();
-    f.createdDate = v.getCreatedDate();
-    f.creatorId = v.getCreatorId();
-    f.fileSize = v.getFileSize();
-    f.description = v.getDescription();
-    f.folder = v.isFolder();
-    if (v.getId() != null) {
-      f.id = v.getId().toString();
+    if(include("name", includeMemberSet)){
+      f.name = v.getName();
     }
-    f.lastModifiedDate = v.getLastModifiedDate();
-    f.locale = v.getLocale();
-    f.originalParentFolderPath = v.getOriginalParentFolderPath();
-    f.deletedDate = v.getDeletedDate();
-    f.lockDate = v.getLockDate();
-    f.locked = v.isLocked();
-    f.lockMessage = v.getLockMessage();
-    f.lockOwner = v.getLockOwner();
-    f.title = v.getTitle();
-    f.versioned = v.isVersioned();
-    if (v.getVersionId() != null) {
-      f.versionId = v.getVersionId().toString();
+    if(include("path", includeMemberSet)){
+      f.path = v.getPath();
     }
-    if (v.getLocalePropertiesMap() != null) {
-      f.localePropertiesMapEntries = new ArrayList<LocaleMapDto>();
-      for (Map.Entry<String, Properties> entry : v.getLocalePropertiesMap().entrySet()) {
+    if(include("hidden", includeMemberSet)){
+      f.hidden = v.isHidden();
+    }
+    if(include("createDate", includeMemberSet)){
+      f.createdDate = v.getCreatedDate();
+    }
+    if(include("creatorId", includeMemberSet)){
+      f.creatorId = v.getCreatorId();
+    }
+    if(include("fileSize", includeMemberSet)){
+      f.fileSize = v.getFileSize();
+    }
+    if(include("description", includeMemberSet)){
+      f.description = v.getDescription();
+    }
+    if(include("folder", includeMemberSet)){
+      f.folder = v.isFolder();
+    }
+    if(include("id", includeMemberSet)){
+      if (v.getId() != null) {
+        f.id = v.getId().toString();
+      }
+    }
+    if(include("lastModifiedDate", includeMemberSet)){
+      f.lastModifiedDate = v.getLastModifiedDate();
+    }
+    if(include("locale", includeMemberSet)){
+      f.locale = v.getLocale();
+    }
+    if(include("originalParentFolderPath", includeMemberSet)){
+      f.originalParentFolderPath = v.getOriginalParentFolderPath();
+    }
+    if(include("deletedDate", includeMemberSet)){
+      f.deletedDate = v.getDeletedDate();
+    }
+    if(include("lockDate", includeMemberSet)){
+      f.lockDate = v.getLockDate();
+    }
+    if(include("locked", includeMemberSet)){
+      f.locked = v.isLocked();
+    }
+    if(include("lockMessage", includeMemberSet)){
+      f.lockMessage = v.getLockMessage();
+    }
+    if(include("lockOwner", includeMemberSet)){
+      f.lockOwner = v.getLockOwner();
+    }
+    if(include("title", includeMemberSet)){
+      f.title = v.getTitle();
+    }
+    if(include("versioned", includeMemberSet)){
+      f.versioned = v.isVersioned();
+    }
+    if(include("versionId", includeMemberSet)){
+      if (v.getVersionId() != null) {
+        f.versionId = v.getVersionId().toString();
+      }
+    }
+    if(include("locales", includeMemberSet)){
+      if (v.getLocalePropertiesMap() != null) {
+        f.localePropertiesMapEntries = new ArrayList<LocaleMapDto>();
+        for (Map.Entry<String, Properties> entry : v.getLocalePropertiesMap().entrySet()) {
 
-        LocaleMapDto localeMapDto = new LocaleMapDto();
-        List<StringKeyStringValueDto> valuesDto = new ArrayList<StringKeyStringValueDto>();
+          LocaleMapDto localeMapDto = new LocaleMapDto();
+          List<StringKeyStringValueDto> valuesDto = new ArrayList<StringKeyStringValueDto>();
 
-        Properties properties = entry.getValue();
-        if(properties != null){
-          for(String propertyName : properties.stringPropertyNames()){
-            valuesDto.add(new StringKeyStringValueDto(propertyName, properties.getProperty(propertyName)));
+          Properties properties = entry.getValue();
+          if(properties != null){
+            for(String propertyName : properties.stringPropertyNames()){
+              valuesDto.add(new StringKeyStringValueDto(propertyName, properties.getProperty(propertyName)));
+            }
           }
+
+          localeMapDto.setLocale(entry.getKey());
+          localeMapDto.setProperties(valuesDto);
+
+          f.localePropertiesMapEntries.add(localeMapDto);
         }
-
-        localeMapDto.setLocale(entry.getKey());
-        localeMapDto.setProperties(valuesDto);
-
-        f.localePropertiesMapEntries.add(localeMapDto);
       }
     }
 

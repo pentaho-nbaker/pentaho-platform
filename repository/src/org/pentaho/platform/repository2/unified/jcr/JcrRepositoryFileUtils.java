@@ -21,6 +21,7 @@ import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.locale.IPentahoLocale;
 import org.pentaho.platform.api.repository2.unified.*;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
+import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.repository2.locale.PentahoLocale;
 import org.pentaho.platform.repository2.messages.Messages;
 import org.pentaho.platform.repository2.unified.exception.RepositoryFileDaoMalformedNameException;
@@ -31,6 +32,8 @@ import org.springframework.util.StringUtils;
 
 import javax.jcr.*;
 import javax.jcr.lock.Lock;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryResult;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
@@ -94,7 +97,7 @@ public class JcrRepositoryFileUtils {
     return file;
   }
 
-  public static RepositoryFile nodeToFile(final Session session, final PentahoJcrConstants pentahoJcrConstants,
+  public static RepositoryFile nodeToFileOld(final Session session, final PentahoJcrConstants pentahoJcrConstants,
       final IPathConversionHelper pathConversionHelper, final ILockHelper lockHelper, final Node node,
       final boolean loadMaps, IPentahoLocale pentahoLocale) throws RepositoryException {
 
@@ -143,6 +146,7 @@ public class JcrRepositoryFileUtils {
       }
     }
 
+    // Expensive
     Map<String, Serializable> metadata = getFileMetadata(session, id);
     creatorId = (String) metadata.get(PentahoJcrConstants.PHO_CONTENTCREATOR);
     if (node.hasProperty(pentahoJcrConstants.getPHO_HIDDEN())) {
@@ -172,8 +176,10 @@ public class JcrRepositoryFileUtils {
       }
     }
 
+    // Not needed for content generators and the like
     if (isPentahoHierarchyNode(session, pentahoJcrConstants, node)) {
       if (node.hasNode(pentahoJcrConstants.getPHO_LOCALES())) {
+        // Expensive
         localePropertiesMap = getLocalePropertiesMap(session, pentahoJcrConstants,
            node.getNode(pentahoJcrConstants.getPHO_LOCALES()));
 
@@ -231,7 +237,35 @@ public class JcrRepositoryFileUtils {
     return file;
   }
 
-  private static String getLocalizedString(final Session session, final PentahoJcrConstants pentahoJcrConstants,
+
+  public static RepositoryFile nodeToFile(final Session session, final PentahoJcrConstants pentahoJcrConstants,
+                                          final IPathConversionHelper pathConversionHelper, final ILockHelper lockHelper, final Node node,
+                                          final boolean loadMaps, IPentahoLocale pentahoLocale) throws RepositoryException {
+
+    if (session.getRootNode().isSame(node)) {
+      return getRootFolder(session);
+    }
+    // Get default locale if null
+    if (pentahoLocale == null) {
+      Locale currentLocale = LocaleHelper.getLocale();
+      if(currentLocale != null){
+        pentahoLocale = new PentahoLocale(currentLocale);
+      } else {
+        pentahoLocale = new PentahoLocale();
+      }
+    }
+    return getRepositoryFileProxyFactory().getProxy(node, pentahoLocale);
+  }
+
+  private static RepositoryFileProxyFactory fileProxyFactory;
+  private static RepositoryFileProxyFactory getRepositoryFileProxyFactory(){
+    if(fileProxyFactory == null){
+      fileProxyFactory = PentahoSystem.get(RepositoryFileProxyFactory.class);
+    }
+    return fileProxyFactory;
+  }
+
+  public static String getLocalizedString(final Session session, final PentahoJcrConstants pentahoJcrConstants,
       final Node localizedStringNode, IPentahoLocale pentahoLocale) throws RepositoryException {
     Assert.isTrue(isLocalizedString(session, pentahoJcrConstants, localizedStringNode));
 
@@ -276,7 +310,7 @@ public class JcrRepositoryFileUtils {
     return localizedStringNode.getProperty(propertyStr).getString();
   }
 
-  private static Map<String, Properties> getLocalePropertiesMap(
+  public static Map<String, Properties> getLocalePropertiesMap(
      final Session session, final PentahoJcrConstants pentahoJcrConstants,
      final Node localesNode) throws RepositoryException {
 
@@ -386,7 +420,7 @@ public class JcrRepositoryFileUtils {
     return node.getPath();
   }
 
-  private static Serializable getNodeId(final Session session, final PentahoJcrConstants pentahoJcrConstants,
+  public static Serializable getNodeId(final Session session, final PentahoJcrConstants pentahoJcrConstants,
       final Node node) throws RepositoryException {
     if (node.isNodeType(pentahoJcrConstants.getNT_FROZENNODE())) {
       return node.getProperty(pentahoJcrConstants.getJCR_FROZENUUID()).getString();
@@ -395,7 +429,7 @@ public class JcrRepositoryFileUtils {
     return node.getIdentifier();
   }
 
-  private static String getNodeName(final Session session, final PentahoJcrConstants pentahoJcrConstants,
+  public static String getNodeName(final Session session, final PentahoJcrConstants pentahoJcrConstants,
       final Node node) throws RepositoryException {
     if (node.isNodeType(pentahoJcrConstants.getNT_FROZENNODE())) {
       return session.getNodeByIdentifier(node.getProperty(pentahoJcrConstants.getJCR_FROZENUUID()).getString())
@@ -405,8 +439,8 @@ public class JcrRepositoryFileUtils {
     return node.getName();
   }
 
-  private static String getVersionId(final Session session, final PentahoJcrConstants pentahoJcrConstants,
-      final Node node) throws RepositoryException {
+  public static String getVersionId(final Session session, final PentahoJcrConstants pentahoJcrConstants,
+                                    final Node node) throws RepositoryException {
     if (node.isNodeType(pentahoJcrConstants.getNT_FROZENNODE())) {
       return node.getParent().getName();
     }
@@ -618,7 +652,7 @@ public class JcrRepositoryFileUtils {
     return node.isNodeType(pentahoJcrConstants.getPHO_NT_PENTAHOFOLDER());
   }
 
-  private static boolean isPentahoHierarchyNode(final Session session, final PentahoJcrConstants pentahoJcrConstants,
+  public static boolean isPentahoHierarchyNode(final Session session, final PentahoJcrConstants pentahoJcrConstants,
       final Node node) throws RepositoryException {
     Assert.notNull(node);
     if (node.isNodeType(pentahoJcrConstants.getNT_FROZENNODE())) {
@@ -631,7 +665,7 @@ public class JcrRepositoryFileUtils {
     return node.isNodeType(pentahoJcrConstants.getPHO_NT_PENTAHOHIERARCHYNODE());
   }
 
-  private static boolean isLocked(final PentahoJcrConstants pentahoJcrConstants, final Node node)
+  public static boolean isLocked(final PentahoJcrConstants pentahoJcrConstants, final Node node)
       throws RepositoryException {
     Assert.notNull(node);
     if (node.isNodeType(pentahoJcrConstants.getNT_FROZENNODE())) {
@@ -673,8 +707,8 @@ public class JcrRepositoryFileUtils {
     return node.isNodeType(pentahoJcrConstants.getPHO_NT_LOCALIZEDSTRING());
   }
 
-  private static boolean isVersioned(final Session session, final PentahoJcrConstants pentahoJcrConstants,
-      final Node node) throws RepositoryException {
+  public static boolean isVersioned(final Session session, final PentahoJcrConstants pentahoJcrConstants,
+                                    final Node node) throws RepositoryException {
     Assert.notNull(node);
     if (node.isNodeType(pentahoJcrConstants.getNT_FROZENNODE())) {
       // frozen nodes represent the nodes at a particular version; so yes, they are versioned!
@@ -943,10 +977,19 @@ public class JcrRepositoryFileUtils {
   }
 
   private enum FILES_TYPE_FILTER {
-    FILES, FOLDERS, FILES_FOLDERS
+    FILES, FOLDERS, FILES_FOLDERS;
+
+    public static Pattern getRegExPattern(){
+      StringBuilder sb = new StringBuilder("(PLACEHOLDER");
+      for(FILES_TYPE_FILTER val : FILES_TYPE_FILTER.values()){
+        sb.append("|").append(val.toString());
+      }
+      sb.append(")");
+      return Pattern.compile(sb.toString());
+    }
   }
 
-  private static final Pattern FILES_TYPES_PATTERN = Pattern.compile("[^\\|]+\\|(.*)");
+  private static final Pattern FILES_TYPES_PATTERN = FILES_TYPE_FILTER.getRegExPattern();
 
   public static RepositoryFileTree getTree(final Session session, final PentahoJcrConstants pentahoJcrConstants,
       final IPathConversionHelper pathConversionHelper, final ILockHelper lockHelper, final String absPath,
@@ -960,15 +1003,19 @@ public class JcrRepositoryFileUtils {
     // Check for File type filter
     FILES_TYPE_FILTER types = FILES_TYPE_FILTER.FILES_FOLDERS;
     if(StringUtils.hasText(filter)){
-      Matcher m = FILES_TYPES_PATTERN.matcher(filter);
-      if(m.matches()){
-        FILES_TYPE_FILTER newType = FILES_TYPE_FILTER.valueOf(m.group(1));
-        if(newType != null){
-          types = newType;
-          // note it only makes sense to have FILES if the depth is 1
-          if(types == FILES_TYPE_FILTER.FILES && depth != 1){
-            types = FILES_TYPE_FILTER.FILES_FOLDERS;
+      String[] parts = filter.split("\\|");
+      for(String part : parts){
+        Matcher m = FILES_TYPES_PATTERN.matcher(part);
+        if(m.matches()){
+          FILES_TYPE_FILTER newType = FILES_TYPE_FILTER.valueOf(m.group(1));
+          if(newType != null){
+            types = newType;
+            // note it only makes sense to have FILES if the depth is 1
+            if(types == FILES_TYPE_FILTER.FILES && depth != 1){
+              types = FILES_TYPE_FILTER.FILES_FOLDERS;
+            }
           }
+          break;
         }
       }
     }
@@ -1004,8 +1051,8 @@ public class JcrRepositoryFileUtils {
           }
 
           RepositoryFile file = nodeToFile(session, pentahoJcrConstants, pathConversionHelper, lockHelper, childNode);
-          if (isSupportedNodeType(pentahoJcrConstants, childNode) && (accessVoterManager.hasAccess(file, RepositoryFilePermission.READ, 
-                  JcrRepositoryFileAclUtils.getAcl(session, pentahoJcrConstants, file.getId()), PentahoSessionHolder.getSession()))) {
+          if (isSupportedNodeType(pentahoJcrConstants, childNode) && (accessVoterManager.hasAccess(file, RepositoryFilePermission.READ,
+              JcrRepositoryFileAclUtils.getAcl(session, pentahoJcrConstants, file.getId()), PentahoSessionHolder.getSession()))) {
             RepositoryFileTree repositoryFileTree = getTreeByNode(session, pentahoJcrConstants, pathConversionHelper,
                 lockHelper, childNode, depth - 1, filter, showHidden, accessVoterManager, types);
             if (repositoryFileTree != null) {

@@ -88,6 +88,7 @@ import org.pentaho.platform.repository2.unified.jcr.*;
 import org.pentaho.platform.repository2.unified.jcr.JcrRepositoryDumpToFile.Mode;
 import org.pentaho.platform.repository2.unified.jcr.jackrabbit.security.TestPrincipalProvider;
 import org.pentaho.platform.repository2.unified.jcr.sejcr.CredentialsStrategy;
+import org.pentaho.platform.repository2.unified.jcr.sejcr.PentahoJcrTemplate;
 import org.pentaho.platform.security.policy.rolebased.IRoleAuthorizationPolicyRoleBindingDao;
 import org.pentaho.platform.security.policy.rolebased.RoleBindingStruct;
 import org.pentaho.platform.security.policy.rolebased.actions.*;
@@ -177,6 +178,7 @@ public class DefaultUnifiedRepositoryTest implements ApplicationContextAware {
    * Used for state verification and test cleanup.
    */
   private JcrTemplate testJcrTemplate;
+  private JcrTemplate jcrTemplate;
 
   private IRoleAuthorizationPolicyRoleBindingDao roleBindingDao;
   private IRoleAuthorizationPolicyRoleBindingDao roleBindingDaoTarget;
@@ -231,14 +233,19 @@ public class DefaultUnifiedRepositoryTest implements ApplicationContextAware {
     mp = new MicroPlatform();
     // used by DefaultPentahoJackrabbitAccessControlHelper
     mp.defineInstance("tenantedUserNameUtils", userNameUtils);
-    mp.defineInstance("tenantedRoleNameUtils", roleNameUtils);    
+    mp.defineInstance("tenantedRoleNameUtils", roleNameUtils);
+    mp.defineInstance("ILockHelper", new DefaultLockHelper(userNameUtils));
+
     mp.defineInstance(IAuthorizationPolicy.class, authorizationPolicy);
     mp.defineInstance(ITenantManager.class, tenantManager);
     mp.defineInstance("roleAuthorizationPolicyRoleBindingDaoTarget", roleBindingDaoTarget);
     mp.defineInstance("repositoryAdminUsername", repositoryAdminUsername);
+    mp.defineInstance("RepositoryFileProxyFactory", new RepositoryFileProxyFactory(this.jcrTemplate, this.repositoryFileDao));
+    mp.defineInstance("ITenantedPrincipleNameResolver", new DefaultTenantedPrincipleNameResolver());
     // Start the micro-platform
     mp.start();
     loginAsRepositoryAdmin();
+
     systemTenant = tenantManager.createTenant(null, ServerRepositoryPaths.getPentahoRootFolderName(), tenantAdminRoleName, tenantAuthenticatedRoleName, "Anonymous");
 
     testJcrTemplate.execute(new JcrCallback() {
@@ -3571,6 +3578,9 @@ public class DefaultUnifiedRepositoryTest implements ApplicationContextAware {
     testJcrTemplate = new JcrTemplate(jcrSessionFactory);
     testJcrTemplate.setAllowCreate(true);
     testJcrTemplate.setExposeNativeSession(true);
+
+    jcrTemplate = (JcrTemplate) applicationContext.getBean("jcrTemplate");
+
     repositoryAdminUsername = (String) applicationContext.getBean("repositoryAdminUsername");
     superAdminRoleName = (String) applicationContext.getBean("superAdminAuthorityName");
     sysAdminUserName = (String) applicationContext.getBean("superAdminUserName");

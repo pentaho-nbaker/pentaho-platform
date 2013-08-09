@@ -84,6 +84,11 @@ public class PentahoJcrTemplate extends JcrTemplate {
     }
   }
 
+  @Override
+  protected Session getSession() {
+    return SessionFactoryUtils.getSession(getSessionFactory(), this.isAllowCreate());
+  }
+
   private RuntimeException pentahoConvertJcrAccessException(final RuntimeException ex) {
     if (ex instanceof AccessControlException) {
       return new org.springframework.security.AccessDeniedException(Messages.getInstance().getString(

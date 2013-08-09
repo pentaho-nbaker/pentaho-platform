@@ -2,6 +2,7 @@ package org.pentaho.platform.repository2.unified.webservices;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
 import org.pentaho.platform.api.repository2.unified.RepositoryFileTree;
@@ -12,11 +13,20 @@ import org.pentaho.platform.api.repository2.unified.RepositoryFileTree;
  * @author mlowery
  */
 public class RepositoryFileTreeAdapter extends XmlAdapter<RepositoryFileTreeDto, RepositoryFileTree> {
+  private Set<String> includeMembersSet;
+
+  public RepositoryFileTreeAdapter(){
+
+  }
+
+  public RepositoryFileTreeAdapter(Set<String> includeMembersSet) {
+    this.includeMembersSet = includeMembersSet;
+  }
 
   @Override
   public RepositoryFileTreeDto marshal(final RepositoryFileTree v) {
     RepositoryFileTreeDto treeDto = new RepositoryFileTreeDto();
-    treeDto.setFile(RepositoryFileAdapter.toFileDto(v.getFile()));
+    treeDto.setFile(RepositoryFileAdapter.toFileDto(v.getFile(), includeMembersSet));
 
     List<RepositoryFileTreeDto> children = null;
     if (v.getChildren() != null) {

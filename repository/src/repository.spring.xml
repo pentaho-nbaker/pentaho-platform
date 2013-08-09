@@ -8,7 +8,6 @@
 
     <bean class="org.pentaho.platform.engine.core.system.objfac.spring.ApplicationContextPentahoSystemRegisterer" lazy-init="false"/>
 
-
     <bean id="propertyPlaceholderConfigurerRepository"
           class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" lazy-init="false">
         <property name="location" value="repository.spring.properties" />
@@ -474,10 +473,10 @@
   <bean id="repositoryFileDao" class="org.pentaho.platform.repository2.unified.jcr.JcrRepositoryFileDao">
     <constructor-arg ref="jcrTemplate"/>
     <constructor-arg ref="transformers"/>
-    <constructor-arg ref="lockHelper"/>
+    <constructor-arg ref="ILockHelper"/>
     <constructor-arg>
       <bean class="org.pentaho.platform.repository2.unified.jcr.DefaultDeleteHelper">
-        <constructor-arg ref="lockHelper"/>
+        <constructor-arg ref="ILockHelper"/>
         <constructor-arg ref="pathConversionHelper"/>
       </bean>
     </constructor-arg>
@@ -493,8 +492,9 @@
     <bean class="org.pentaho.platform.repository2.unified.jcr.transform.NodeRepositoryFileDataTransformer"/>
   </util:list>
 
-  <bean id="lockHelper" class="org.pentaho.platform.repository2.unified.jcr.DefaultLockHelper">
+  <bean id="ILockHelper" class="org.pentaho.platform.repository2.unified.jcr.DefaultLockHelper">
   	<constructor-arg ref="tenantedUserNameUtils"/>
+    <pen:publish as-type="INTERFACES"/>
   </bean>
   <bean id="pathConversionHelper" class="org.pentaho.platform.repository2.unified.jcr.DefaultPathConversionHelper"/>
 

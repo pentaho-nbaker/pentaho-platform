@@ -16,6 +16,8 @@ package org.pentaho.platform.repository2.unified.webservices;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.jws.WebService;
 
@@ -43,7 +45,6 @@ public class DefaultUnifiedRepositoryWebService implements IUnifiedRepositoryWeb
 
   protected RepositoryFileAdapter repositoryFileAdapter = new RepositoryFileAdapter();
 
-  protected RepositoryFileTreeAdapter repositoryFileTreeAdapter = new RepositoryFileTreeAdapter();
 
   protected NodeRepositoryFileDataAdapter nodeRepositoryFileDataAdapter = new NodeRepositoryFileDataAdapter();
 
@@ -121,6 +122,8 @@ public class DefaultUnifiedRepositoryWebService implements IUnifiedRepositoryWeb
     return file != null ? this.repositoryFileAdapter.marshal(file) : null;
   }
 
+  private static final Pattern FILES_TYPES_PATTERN = Pattern.compile("limit=(.+)");
+
   public RepositoryFileTreeDto getTree(final String path, final int depth, final String filter, final boolean showHidden) {
     RepositoryFileTree tree = repo.getTree(path, depth, filter, showHidden);
 
@@ -139,7 +142,20 @@ public class DefaultUnifiedRepositoryWebService implements IUnifiedRepositoryWeb
       files.add(file);
     }
     tree = new RepositoryFileTree(tree.getFile(), files);
-    return tree != null ? repositoryFileTreeAdapter.marshal(tree) : null;
+    if(tree == null){
+      return null;
+    }
+
+    String[] parts = filter.split("\\|");
+    Set<String> includeMembersSet = null;
+    for(String part : parts){
+      Matcher m = FILES_TYPES_PATTERN.matcher(part);
+      if(m.matches()){
+        String includeMembersStr = m.group(1);
+        includeMembersSet = new HashSet<String>(Arrays.asList(includeMembersStr.split(",")));
+      }
+    }
+    return new RepositoryFileTreeAdapter(includeMembersSet).marshal(tree);
   }
 
   private List<RepositoryFileDto> marshalFiles(List<RepositoryFile> files) {
