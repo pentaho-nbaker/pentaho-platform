@@ -83,11 +83,19 @@ public class JAXRSPluginServlet extends SpringServlet implements ApplicationCont
               return APPLICATION_WADL;
             } else if ( method.getName().equals( "getRequestURL" ) ) {
               String url = originalRequest.getRequestURL().toString();
+              String part = url.substring( 0, url.indexOf( originalRequest.getPathInfo() ) );
+              if( part.endsWith( "/" ) == false){
+                part += "/";
+              }
               return new StringBuffer(
-                url.substring( 0, url.indexOf( originalRequest.getPathInfo() ) ) + "/"+ APPLICATION_WADL );
+                 part + APPLICATION_WADL );
             } else if ( method.getName().equals( "getRequestURI" ) ) {
               String uri = originalRequest.getRequestURI();
-              return uri.substring( 0, uri.indexOf( originalRequest.getPathInfo() ) ) + "/"+ APPLICATION_WADL;
+              String part = uri.substring( 0, uri.indexOf( originalRequest.getPathInfo() ) );
+              if(part.endsWith( "/" ) == false){
+                part += "/";
+              }
+              return part + APPLICATION_WADL;
             }
             // We don't care about the Method, delegate out to real Request object.
             return method.invoke( originalRequest, args );

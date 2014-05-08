@@ -147,6 +147,9 @@ public class PluginDispatchServlet implements Servlet {
   }
 
   @SuppressWarnings( "unchecked" )
+  /**
+   * This is not flexible, will not respond to plugins coming and going.
+   */
   private synchronized void doInit() throws ServletException {
     if ( logger.isDebugEnabled() ) {
       logger.debug( "PluginDispatchServlet.init" ); //$NON-NLS-1$
