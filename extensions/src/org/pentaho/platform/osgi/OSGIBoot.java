@@ -17,6 +17,7 @@
 
 package org.pentaho.platform.osgi;
 
+import org.apache.karaf.main.Main;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.Constants;
 import org.osgi.framework.launch.Framework;
@@ -44,8 +45,8 @@ import java.util.ServiceLoader;
  * PentahoSystem aggregate objectFactory
  */
 public class OSGIBoot implements IPentahoSystemListener {
-  Framework framework;
   private Logger logger = LoggerFactory.getLogger( OSGIBoot.class );
+  Main main;
 
   @Override
   public boolean startup( IPentahoSession session ) {
@@ -56,105 +57,74 @@ public class OSGIBoot implements IPentahoSystemListener {
     final String sep = File.separator;
 
     // set the location of the log4j config file, since OSGI won't pick up the one in webapp
-    System.setProperty( "log4j.configuration", "file:" + solutionRootPath + "/system/osgi/log4j.xml" );
+//    System.setProperty( "log4j.configuration", "file:" + solutionRootPath + "/system/osgi/log4j.xml" );
     // Setting ignoreTCL to true such that the OSGI classloader used to initialize log4j will be the
     // same one used when instatiating appenders.
-    System.setProperty( "log4j.ignoreTCL", "true" );
+//    System.setProperty( "log4j.ignoreTCL", "true" );
 
-    Properties osgiProps = new Properties();
-    File propsFile = new File( solutionRootPath + sep + "system" + sep + "osgi" + sep + "config.properties" );
-    if ( propsFile.exists() ) {
-      try {
-        osgiProps.load( new FileInputStream( propsFile ) );
-      } catch ( IOException e ) {
-        logger.error( "Error reading OSGI Host config", e );
-      }
-    }
-
+//    Properties osgiProps = new Properties();
+//    File propsFile = new File( solutionRootPath + sep + "system" + sep + "osgi" + sep + "config.properties" );
+//    if ( propsFile.exists() ) {
+//      try {
+//        osgiProps.load( new FileInputStream( propsFile ) );
+//      } catch ( IOException e ) {
+//        logger.error( "Error reading OSGI Host config", e );
+//      }
+//    }
+//
     Map<String, String> configProps = new HashMap<String, String>();
-
-    for ( Map.Entry<Object, Object> entry : osgiProps.entrySet() ) {
-      configProps.put( entry.getKey().toString(), entry.getValue().toString() );
-    }
+//
+//    for ( Map.Entry<Object, Object> entry : osgiProps.entrySet() ) {
+//      configProps.put( entry.getKey().toString(), entry.getValue().toString() );
+//    }
 
     // configProps.put( FelixConstants.SYSTEMBUNDLE_ACTIVATORS_PROP, Collections.singletonList(new
-    // org.pentaho.platform.osgi.PentahoOSGIActivator()) );
-    configProps.put( Constants.FRAMEWORK_STORAGE, solutionRootPath + "/system/osgi/cache" );
-    System.setProperty( "felix.fileinstall.dir", solutionRootPath + "/system/osgi/bundles" );
-
-    configProps.put( "felix.fileinstall.debug", "4" );
-    configProps.put( "felix.fileinstall.bundles.new.start", "true" );
-    configProps.put( "felix.fileinstall.bundles.startActivationPolicy", "false" );
-
-    configProps.put( "org.eclipse.virgo.kernel.home", solutionRootPath + "/osgi/virgo" );
-    configProps.put( "org.eclipse.virgo.kernel.config", solutionRootPath + "/osgi/virgo/configuration" );
-    configProps.put( "osgi.sharedConfiguration.area", solutionRootPath + "/osgi/virgo/configuration" );
-    configProps.put( "osgi.configuration.area", solutionRootPath + "/osgi/virgo/configuration" );
-    configProps.put( "osgi.install.area", solutionRootPath + "/osgi/virgo" );
-    configProps.put( "eclipse.ignoreApp", "true" );
+//    // org.pentaho.platform.osgi.PentahoOSGIActivator()) );
+//    configProps.put( Constants.FRAMEWORK_STORAGE, solutionRootPath + "/system/osgi/cache" );
+//    System.setProperty( "felix.fileinstall.dir", solutionRootPath + "/system/osgi/bundles" );
+//
+//    configProps.put( "felix.fileinstall.debug", "4" );
+//    configProps.put( "felix.fileinstall.bundles.new.start", "true" );
+//    configProps.put( "felix.fileinstall.bundles.startActivationPolicy", "false" );
+////
+//    configProps.put( "org.eclipse.virgo.kernel.home", solutionRootPath + "/osgi/virgo" );
+//    configProps.put( "org.eclipse.virgo.kernel.config", solutionRootPath + "/osgi/virgo/configuration" );
+//    configProps.put( "osgi.sharedConfiguration.area", solutionRootPath + "/osgi/virgo/configuration" );
+//    configProps.put( "osgi.configuration.area", solutionRootPath + "/osgi/virgo/configuration" );
+//    configProps.put( "osgi.install.area", solutionRootPath + "/osgi/virgo" );
+//    configProps.put( "eclipse.ignoreApp", "true" );
 
     try {
       logger.debug( "Attempting to load OSGI FrameworkFactory." );
-      FrameworkFactory factory = ServiceLoader.load( FrameworkFactory.class ).iterator().next();
-      logger.debug( "FrameworkFactory found" );
-      framework = factory.newFramework( configProps );
-      logger.debug( "Initializing FrameworkFactory" );
-      framework.init();
+//      FrameworkFactory factory = ServiceLoader.load( FrameworkFactory.class ).iterator().next();
+//      logger.debug( "FrameworkFactory found" );
+//      framework = factory.newFramework( configProps );
+//      logger.debug( "Initializing FrameworkFactory" );
+//      framework.init();
+//
+//      logger.debug( "Starting FrameworkFactory" );
+//      framework.start();
 
-      logger.debug( "Starting FrameworkFactory" );
-      framework.start();
+      String root = new File( solutionRootPath + "/system/karaf" ).getAbsolutePath();
+      System.setProperty("karaf.home", root);
+      System.setProperty("karaf.base", root);
+      System.setProperty("karaf.data", root + "/data");
+      System.setProperty("karaf.history", root + "/data/history.txt");
+      System.setProperty("karaf.instances", root + "/instances");
+      System.setProperty("karaf.startLocalConsole", "false");
+      System.setProperty("karaf.startRemoteShell", "true");
+      System.setProperty("karaf.lock", "false");
+      main = new Main(new String[0]);
+      main.launch();
 
-      Runtime.getRuntime().addShutdownHook( new Thread( "Felix Shutdown Hook" ) {
+      Runtime.getRuntime().addShutdownHook( new Thread( "KarafShutdown Hook" ) {
         public void run() {
           shutdownFramework();
         }
       } );
 
-      List<Bundle> bundleList = new ArrayList<Bundle>();
 
-      File[] bundleDirectories =
-          new File[] {
-            new File( solutionRootPath + File.separator + "system" + File.separator + "osgi" + File.separator
-                + "core_bundles" ),
-            new File( solutionRootPath + File.separator + "system" + File.separator + "osgi" + File.separator
-              + "fragment_bundles" ),
-            new File( solutionRootPath + File.separator + "system" + File.separator + "osgi" + File.separator
-                + "bundles" ) };
-
-      logger.debug( "Installing bundles" );
-      for ( File bundleDirectory : bundleDirectories ) {
-        if ( bundleDirectory.exists() == false ) {
-          logger.warn( "Bundle directory: " + bundleDirectory.getName() + " does not exist" );
-          continue;
-        }
-        File[] files = bundleDirectory.listFiles();
-        Arrays.sort( files );
-        for ( File f : files ) {
-          if ( f.isFile() && f.getName().endsWith( ".jar" ) ) {
-            try {
-              Bundle b = framework.getBundleContext().installBundle( f.toURI().toString() );
-              bundleList.add( b );
-            } catch ( Exception e ) {
-              logger.error( "Error installing Bundle", e );
-            }
-          }
-        }
-      }
-
-      logger.debug( "Starting bundles" );
-      for ( Bundle bundle : bundleList ) {
-        try {
-          // detect if a fragment bundle and skip. They cannot be started..
-          if ( bundle.getHeaders().get( "Fragment-Host" ) != null ) {
-            continue;
-          }
-          bundle.start();
-        } catch ( Exception e ) {
-          logger.error( "Error installing Bundle", e );
-        }
-      }
-
-      new PentahoOSGIActivator().setBundleContext( framework.getBundleContext() );
+      new PentahoOSGIActivator().setBundleContext( main.getFramework().getBundleContext() );
 
       return true;
     } catch ( Exception ex ) {
@@ -165,9 +135,9 @@ public class OSGIBoot implements IPentahoSystemListener {
 
   private void shutdownFramework() {
     try {
-      if ( framework != null ) {
-        framework.stop();
-        framework.waitForStop( 0 );
+      if ( main != null ) {
+        main.destroy();
+        main.awaitShutdown();
       }
     } catch ( Exception ex ) {
       logger.error( "Error stopping OSGI", ex );
