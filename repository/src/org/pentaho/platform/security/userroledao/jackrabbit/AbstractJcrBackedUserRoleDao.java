@@ -574,8 +574,8 @@ public abstract class AbstractJcrBackedUserRoleDao implements IUserRoleDao {
       theTenant = JcrTenantUtils.getTenant();
     }
     if ( TenantUtils.isAccessibleTenant( theTenant ) ) {
-      UserManager userMgr = getUserManager( theTenant, session );  
-      pPrincipalName = ( (SessionImpl) session ).getJCRName( P_PRINCIPAL_NAME );
+      UserManager userMgr = getUserManager( theTenant, session );
+        pPrincipalName = ( (SessionImpl) session ).getJCRName( P_PRINCIPAL_NAME );
       Iterator<Authorizable> it = userMgr.findAuthorizables( pPrincipalName, null, UserManager.SEARCH_TYPE_USER );
       while ( it.hasNext() ) {
         User user = (User) it.next();
