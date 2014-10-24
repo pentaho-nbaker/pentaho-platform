@@ -46,6 +46,10 @@ public abstract class BaseSession extends PentahoBase implements IPentahoSession
 
   private volatile boolean backgroundExecutionAlert;
 
+  private boolean destroyed;
+
+  protected String destroyStack;
+
   public BaseSession( final String name, final String id, final Locale locale ) {
     this.name = name;
     this.id = id;
@@ -85,6 +89,19 @@ public abstract class BaseSession extends PentahoBase implements IPentahoSession
   }
 
   public void destroy() {
+    this.destroyed = true;
+
+    // Capture the Stack from the call to be logged later if someone accesses the destroyed session
+    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+    StringBuffer sb = new StringBuffer();
+    for ( StackTraceElement stackTraceElement : stackTraceElements ) {
+      sb.append( stackTraceElement.toString() ).append( "\n" );
+    }
+    this.destroyStack = sb.toString();
+  }
+
+  @Override public boolean isDestroyed() {
+    return this.destroyed;
   }
 
   public void setActionName( final String actionName ) {

@@ -71,6 +71,13 @@ public interface IPentahoSession extends ILogger, IAuditable {
   public void destroy();
 
   /**
+   * Checks the status of the session
+   *
+   * @return true if destroy() has been called on the session.
+   */
+  public boolean isDestroyed();
+
+  /**
    * Get the value of a named session attribute
    * 
    * @param attributeName

@@ -315,6 +315,11 @@ public class HttpSessionPentahoSessionIntegrationFilter implements Filter, Initi
       return null;
     }
 
+    if( pentahoSessionFromHttpSession.isDestroyed() ){
+      // Someone closed our session. Check the debug logs for a stack-trace of where it was closed
+      return null;
+    }
+
     return pentahoSessionFromHttpSession;
   }
 
