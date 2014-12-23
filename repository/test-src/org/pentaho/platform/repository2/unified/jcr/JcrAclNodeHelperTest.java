@@ -18,12 +18,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.EnumSet;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.pentaho.di.core.util.Assert.assertTrue;
-import static org.pentaho.di.core.util.Assert.assertFalse;
-import static org.pentaho.platform.repository2.unified.jcr.IAclNodeHelper.DatasourceType.MONDRIAN;
+import static org.junit.Assert.*;
 
 @RunWith( SpringJUnit4ClassRunner.class )
 @ContextConfiguration( locations = { "classpath:/repository.spring.xml",
@@ -34,6 +29,7 @@ public class JcrAclNodeHelperTest extends DefaultUnifiedRepositoryBase {
 
   private JcrAclNodeHelper helper;
   private ITenant defaultTenant;
+  private RepositoryFile targetFile;
 
   @Before
   public void setUp() throws Exception {
@@ -41,6 +37,7 @@ public class JcrAclNodeHelperTest extends DefaultUnifiedRepositoryBase {
 
     createUsers();
     ensurePublicExists();
+    targetFile = createSampleFile( "public", "test.txt", "test", true, 1 );
 
     helper = new JcrAclNodeHelper( repo, ClientRepositoryPaths.getPublicFolderPath() );
   }
@@ -87,8 +84,7 @@ public class JcrAclNodeHelperTest extends DefaultUnifiedRepositoryBase {
 
   @Test
   public void visibleForEveryOne() {
-    loginAsSuzy();
-    assertTrue( helper.hasAccess( DS_NAME, MONDRIAN ) );
+    assertTrue( helper.hasAccess( targetFile, USERNAME_SUZY, EnumSet.of( RepositoryFilePermission.READ ) ) );
   }
 
 
@@ -96,46 +92,43 @@ public class JcrAclNodeHelperTest extends DefaultUnifiedRepositoryBase {
   public void suzyHasAccess() {
     makeDsPrivate();
 
-    loginAsSuzy();
-    assertTrue( helper.hasAccess( DS_NAME, MONDRIAN ) );
+    assertTrue( helper.hasAccess( targetFile, USERNAME_SUZY, EnumSet.of( RepositoryFilePermission.READ )) );
   }
 
   @Test
   public void tiffanyHasNoAccess() {
     makeDsPrivate();
-
-    loginAsTiffany();
-    assertFalse( helper.hasAccess( DS_NAME, MONDRIAN ) );
+    assertFalse( helper.hasAccess( targetFile, USERNAME_TIFFANY, EnumSet.of( RepositoryFilePermission.READ )) );
   }
 
 
   @Test
   public void publish() {
     makeDsPrivate();
-    helper.publishDatasource( DS_NAME, MONDRIAN );
+    helper.removeAclFor( targetFile );
 
     loginAsTiffany();
-    assertTrue( helper.hasAccess( DS_NAME, MONDRIAN ) );
+    assertTrue( helper.hasAccess( targetFile, USERNAME_TIFFANY, EnumSet.of( RepositoryFilePermission.READ )) );
   }
 
   @Test
   public void aclIsReplaced() {
     loginAsRepositoryAdmin();
     RepositoryFileAcl acl = createAclFor( USERNAME_SUZY );
-    helper.setAclFor( DS_NAME, MONDRIAN, acl );
+    helper.setAclFor( targetFile, acl );
 
     loginAsSuzy();
-    assertTrue( helper.hasAccess( DS_NAME, MONDRIAN ) );
+    assertTrue( helper.hasAccess( targetFile, USERNAME_SUZY, EnumSet.of( RepositoryFilePermission.READ )) );
 
     loginAsTiffany();
-    assertFalse( helper.hasAccess( DS_NAME, MONDRIAN ) );
+    assertFalse( helper.hasAccess( targetFile, USERNAME_TIFFANY, EnumSet.of( RepositoryFilePermission.READ )));
 
     loginAsRepositoryAdmin();
     acl = createAclFor( USERNAME_TIFFANY );
-    helper.setAclFor( DS_NAME, MONDRIAN, acl );
+    helper.setAclFor( targetFile, acl );
 
     loginAsTiffany();
-    assertTrue( helper.hasAccess( DS_NAME, MONDRIAN ) );
+    assertTrue( helper.hasAccess( targetFile, USERNAME_TIFFANY, EnumSet.of( RepositoryFilePermission.READ )) );
   }
 
 
@@ -144,11 +137,7 @@ public class JcrAclNodeHelperTest extends DefaultUnifiedRepositoryBase {
     makeDsPrivate();
 
     loginAsSuzy();
-    assertNotNull( repo.getFile( helper.getAclNodeFolder() + "/" + MONDRIAN.resolveName( DS_NAME ) ) );
-
-    loginAsRepositoryAdmin();
-    assertNotNull(
-      repo.getFile( helper.getAclNodeFolder() + "/" + MONDRIAN.resolveName( DS_NAME ) + "/" + "acl.store" ) );
+    assertTrue( "No ACL node was created", repo.getReferrers( targetFile.getId() ).size() > 0 );
   }
 
   @Test
@@ -156,16 +145,15 @@ public class JcrAclNodeHelperTest extends DefaultUnifiedRepositoryBase {
     makeDsPrivate();
 
     loginAsRepositoryAdmin();
-    helper.setAclFor( DS_NAME, MONDRIAN, null );
-    assertNull( repo.getFile( helper.getAclNodeFolder() + "/" + MONDRIAN.resolveName( DS_NAME ) ) );
-    assertNull( repo.getFile( helper.getAclNodeFolder() + "/" + MONDRIAN.resolveName( DS_NAME ) + "/" + "acl.store" ) );
+    helper.setAclFor( targetFile, null );
+    assertTrue( "Referrers should be null after ACL delete", repo.getReferrers( targetFile.getId() ).size() == 0 );
   }
 
 
   private void makeDsPrivate() {
     loginAsRepositoryAdmin();
     RepositoryFileAcl acl = createAclFor( USERNAME_SUZY );
-    helper.setAclFor( DS_NAME, MONDRIAN, acl );
+    helper.setAclFor( targetFile, acl );
   }
 
   private static RepositoryFileAcl createAclFor( String user ) {
