@@ -203,40 +203,35 @@ public class ProxyTrustingFilter implements Filter {
         if ( !isEmpty( name ) ) {
 
           try {
-            SecurityHelper.getInstance().runAsUser( name, new Callable<Void>() {
+            SecurityHelper.getInstance().becomeUser(name);
 
-              @Override
-              public Void call() throws Exception {
-                HttpSession httpSession = req.getSession();
+            HttpSession httpSession = req.getSession();
 
-                httpSession.setAttribute( PentahoSystem.PENTAHO_SESSION_KEY, PentahoSessionHolder.getSession() );
+            httpSession.setAttribute( PentahoSystem.PENTAHO_SESSION_KEY, PentahoSessionHolder.getSession() );
 
-                /**
-                 * definition of anonymous inner class
+            /**
+             * definition of anonymous inner class
+             */
+            SecurityContext authWrapper = new SecurityContext() {
+              /**
+                 *
                  */
-                SecurityContext authWrapper = new SecurityContext() {
-                  /**
-                     * 
-                     */
-                  private static final long serialVersionUID = 1L;
-                  private Authentication authentication;
+              private static final long serialVersionUID = 1L;
+              private Authentication authentication;
 
-                  public Authentication getAuthentication() {
-                    return authentication;
-                  };
+              public Authentication getAuthentication() {
+                return authentication;
+              };
 
-                  public void setAuthentication( Authentication authentication ) {
-                    this.authentication = authentication;
-                  };
-                }; // end anonymous inner class
+              public void setAuthentication( Authentication authentication ) {
+                this.authentication = authentication;
+              };
+            }; // end anonymous inner class
 
-                authWrapper.setAuthentication( SecurityContextHolder.getContext().getAuthentication() );
-                httpSession.setAttribute( HttpSessionContextIntegrationFilter.SPRING_SECURITY_CONTEXT_KEY,
-                  authWrapper );
-                return null;
-              }
+            authWrapper.setAuthentication( SecurityContextHolder.getContext().getAuthentication() );
+            httpSession.setAttribute( HttpSessionContextIntegrationFilter.SPRING_SECURITY_CONTEXT_KEY,
+              authWrapper );
 
-            } );
           } catch ( Exception e ) {
             throw new ServletException( e );
           }
@@ -244,7 +239,13 @@ public class ProxyTrustingFilter implements Filter {
         }
       }
     }
-    chain.doFilter( request, response );
+
+    try {
+      chain.doFilter( request, response );
+    } finally {
+      PentahoSessionHolder.setSession( null );
+      SecurityContextHolder.setContext( null );
+    }
 
     // long stopTime = System.currentTimeMillis();
 

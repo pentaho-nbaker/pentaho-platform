@@ -112,7 +112,7 @@ public class InheritableThreadLocalPentahoSessionHolderStrategy implements IPent
           logger.debug( Messages.getInstance().getString( "PentahoSessionHolder.DEBUG_DESTROY_STANDALONE_SESSION", //$NON-NLS-1$
               String.valueOf( sess.getId() ), sess.getName(), String.valueOf( Thread.currentThread().getId() ) ) );
         }
-        ( (StandaloneSession) sess ).destroy();
+       // ( (StandaloneSession) sess ).destroy();
       }
 
       perThreadSession.remove();
