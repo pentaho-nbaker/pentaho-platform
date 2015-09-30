@@ -53,6 +53,9 @@
     <dependency org="net.sf.saxon" name="saxon" rev="9.1.0.8" transitive="false"/>
     <dependency org="net.sf.saxon" name="saxon-dom" rev="9.1.0.8" transitive="false"/>
 
+    <dependency org="org.jboss.modules" name="jboss-modules" rev="1.4.3.Final" />
+
+
 
     <dependency org="org.quartz-scheduler" name="quartz" rev="1.7.2" transitive="false"/>
 

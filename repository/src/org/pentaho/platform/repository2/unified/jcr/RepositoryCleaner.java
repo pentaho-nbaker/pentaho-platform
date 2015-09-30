@@ -23,9 +23,17 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.api.management.DataStoreGarbageCollector;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
+import org.springframework.extensions.jcr.JcrCallback;
+import org.springframework.extensions.jcr.JcrTemplate;
 
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import java.io.IOException;
 
 /**
  * This class provides a static method {@linkplain #gc()} for running JCR's GC routine.
@@ -63,6 +71,7 @@ public class RepositoryCleaner {
 
       DataStoreGarbageCollector gc = repository.createDataStoreGarbageCollector();
       try {
+//        gc.setPersistenceManagerScan( false );
         logger.debug( "Starting marking stage" );
         gc.mark();
         logger.debug( "Starting sweeping stage" );
@@ -71,8 +80,59 @@ public class RepositoryCleaner {
       } finally {
         gc.close();
       }
+
     } catch ( RepositoryException e ) {
       logger.error( "Error during garbage collecting", e );
+    }
+    JcrTemplate jcrTemplate = PentahoSystem.get( JcrTemplate.class, "jcrTemplate", null );
+    jcrTemplate.execute( new JcrCallback() {
+      @Override public Object doInJcr( Session session ) throws IOException, RepositoryException {
+        Node node = session.getNode( "/jcr:system/jcr:versionStorage" );
+        findVersionNodesAndPurge( node, session );
+        return null;
+      }
+    } );
+
+  }
+
+  private static void findVersionNodesAndPurge( Node node, Session session ) {
+    try {
+      if ( node.getName().equals( "jcr:frozenNode" ) && !node.getParent().getName().equals("jcr:rootVersion") ) {
+        // Version Node
+        if( node.hasProperty( "jcr:frozenUuid" ) ){
+          Property property = node.getProperty( "jcr:frozenUuid" );
+          Value uuid = property.getValue();
+          Node nodeByIdentifier = null;
+          try {
+            nodeByIdentifier = session.getNodeByIdentifier( uuid.getString() );
+          } catch( RepositoryException ex ){
+            // ignored
+          }
+          if ( nodeByIdentifier == null ) {
+            // node is gone
+            System.out.println( "Removed orphan version: " + nodeByIdentifier.getPath() + " From: " + node.getPath() );
+            session.getWorkspace().getVersionManager().getVersionHistory( uuid.toString() );
+            node.remove();
+          } else {
+            System.out.println( "Not orphaned: " + nodeByIdentifier.getPath() + " From: " + node.getPath() );
+          }
+        }
+
+      }
+    } catch (RepositoryException e){
+      //      e.printStackTrace();
+      // ignored
+    }
+
+    NodeIterator nodes = null;
+    try {
+      nodes = node.getNodes();
+    } catch ( RepositoryException e ) {
+      //      e.printStackTrace();
+      return;
+    }
+    while ( nodes.hasNext() ) {
+      findVersionNodesAndPurge( nodes.nextNode(), session );
     }
   }
 }
