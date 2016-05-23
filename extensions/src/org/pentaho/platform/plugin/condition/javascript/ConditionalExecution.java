@@ -48,7 +48,7 @@ public class ConditionalExecution implements IConditionalExecution {
 
   public boolean shouldExecute( final Map currentInputs, final Log logger ) throws Exception {
     boolean shouldExecute = true;
-    Context cx = ContextFactory.getGlobal().enterContext();
+    Context cx = ContextFactory.getGlobal().enter();
     try {
       ScriptableObject scriptable = new RhinoScriptable();
       // initialize the standard javascript objects

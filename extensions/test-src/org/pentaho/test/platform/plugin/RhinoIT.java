@@ -38,7 +38,7 @@ public class RhinoIT extends BaseTest {
   public void testRhino() {
     // Creates and enters a Context. The Context stores information
     // about the execution environment of a script.
-    Context cx = ContextFactory.getGlobal().enterContext();
+    Context cx = ContextFactory.getGlobal().enter();
     try {
       // Initialize the standard objects (Object, Function, etc.)
       // This must be done before scripts can be executed. Returns

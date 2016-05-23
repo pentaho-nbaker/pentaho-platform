@@ -126,7 +126,7 @@ public class JavascriptRule extends ComponentBase {
    */
   @Override
   protected boolean executeAction() {
-    Context cx = ContextFactory.getGlobal().enterContext();
+    Context cx = ContextFactory.getGlobal().enter();
     StringBuffer buffer = new StringBuffer();
     @SuppressWarnings( "unchecked" )
     Iterator<String> iter = getResourceNames().iterator();

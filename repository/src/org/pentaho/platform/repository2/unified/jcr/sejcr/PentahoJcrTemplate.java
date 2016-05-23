@@ -33,7 +33,7 @@ import org.springframework.extensions.jcr.SessionFactoryUtils;
 
 /**
  * Copy of superclass' execute with better exception conversions.
- * 
+ *
  * @author mlowery
  */
 public class PentahoJcrTemplate extends JcrTemplate {
@@ -75,9 +75,9 @@ public class PentahoJcrTemplate extends JcrTemplate {
       // Callback code threw application exception...
       throw pentahoConvertJcrAccessException( ex );
     } finally {
-//      if ( !existingTransaction ) {
-//        SessionFactoryUtils.releaseSession( session, getSessionFactory() );
-//      }
+      //      if ( !existingTransaction ) {
+      //        SessionFactoryUtils.releaseSession( session, getSessionFactory() );
+      //      }
     }
   }
 

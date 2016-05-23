@@ -60,7 +60,7 @@
 		<!-- Hibernate and dependencies -->
 		<dependency org="org.hibernate"     name="hibernate-core"    rev="3.6.9.Final" transitive="false"/>
     <dependency org="org.hibernate"     name="hibernate-ehcache"    rev="3.6.0.Final" transitive="false"/>
-		<dependency org="antlr"             name="antlr"        rev="2.7.6"    transitive="false"/>
+		<dependency org="org.antlr"         name="antlr-complete"     rev="3.5.2"    transitive="false"/>
 		<dependency org="asm"               name="asm"          rev="3.1"    transitive="false"/>
 		<dependency org="asm"               name="asm-attrs"    rev="2.2.3"    transitive="false"/>
 		<dependency org="javax.transaction" name="jta"          rev="1.1"   transitive="false"/>
@@ -96,7 +96,6 @@
 		<dependency org="org.jempbox"              name="jempbox"                      rev="0.2.0"      transitive="false"/>
 		<dependency org="org.apache.lucene"        name="lucene-core"                  rev="2.4.1"      transitive="false"/>
 		<dependency org="net.sourceforge.nekohtml" name="nekohtml"                     rev="1.9.7"      transitive="false"/>
-		<dependency org="pdfbox"                   name="pdfbox"                       rev="0.7.3"      transitive="false"/>
 		<dependency org="org.apache.poi"           name="poi"                          rev="3.12"       transitive="false"/>
 		<dependency org="org.apache.poi"           name="poi-scratchpad"               rev="3.12"       transitive="false"/>
 		<dependency org="org.slf4j"                name="slf4j-api"                    rev="1.6.4"      transitive="false"/>
@@ -113,6 +112,8 @@
 
 		<dependency org="${ivy.artifact.group}" name="pentaho-platform-api"  rev="${project.revision}" changing="true"/>
 		<dependency org="${ivy.artifact.group}" name="pentaho-platform-core" rev="${project.revision}" changing="true"/>
+		<dependency org="org.javassist" name="javassist" rev="3.20.0-GA" conf="default->default" transitive="false"/>
+
 
 		<!--  testing dependencies -->
 		<dependency org="pentaho"              	name="pentaho-platform-core-test" rev="${project.revision}" changing="true" conf="test->default" transitive="false" />
@@ -155,11 +156,13 @@
 	    <dependency org="org.quartz-scheduler" 	name="quartz"        rev="1.7.2"   conf="test->default"/>
 	    <dependency org="org.hamcrest"          name="hamcrest-core"  rev="1.1"   conf="test->default"/>
 	    <dependency org="org.hamcrest"          name="hamcrest-library"  rev="1.1"   conf="test->default"/>
-	    <dependency org="org.mockito"          	name="mockito-all"  rev="1.8.5"   conf="test->default"/>
+	    <dependency org="org.mockito"          	name="mockito-all"  rev="1.10.19"   conf="test->default"/>
 		<dependency org="org.jmock" 			name="jmock-junit4" rev="2.5.1" conf="test->default"/>
 	    <dependency org="org.jmock" 			name="jmock-legacy" rev="2.5.1" conf="test->default" />
 	    <dependency org="com.sun.jersey" 		name="jersey-test-framework" rev="1.8" conf="test->default"/>
 
+				<exclude org="antlr" module="antlr"/>
+		<exclude org="javassist" module="javassist"/>
         <override org="pentaho-kettle" rev="${dependency.kettle.revision}" />
 	</dependencies>
 </ivy-module>
